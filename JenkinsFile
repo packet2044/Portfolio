@@ -3,7 +3,9 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/packet2044/Portfolio.git'
+                git branch: 'main',
+                    url: 'https://github.com/packet2044/Portfolio.git',
+                    credentialsId: 'PAT'
             }
         }
         stage('Install Dependencies') {
@@ -28,3 +30,4 @@ pipeline {
         }
     }
 }
+
