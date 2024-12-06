@@ -64,6 +64,8 @@ pipeline {
     post {
         success {
             echo "Build and Deployment Success!"
+            // Trigger the Release Pipeline job after successful build and deployment
+            build job: 'Release_Pipeline', wait: false
         }
 
         failure {
