@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Download Latest Build Artifact') {
+            steps {
+                script {
+                    // Fetch the latest build artifact from the Build Pipeline
+                    // Adjust the filter path if necessary based on your artifact location
+                    copyArtifacts(projectName: 'Build_Pipeline', filter: '**/build/**', target: './build')
+                }
+            }
+        }
+
+        stage('Deploy Application') {
+            steps {
+                script {
+                    // Assuming you're deploying to a remote server via SSH
+                    // Adjust the command based on your deployment process
+                    echo "Deploying the build to the server..."
+
+                    // Example: Deploy to a server using SSH (ensure you have an SSH configuration in Jenkins)
+                    sshPublisher(publishers: [
+                        sshPublisherDesc(
+                            configName: 'MyServer',  // The SSH server config in Jenkins
+                            transfers: [
+                                sshTransfer(
+                                    sourceFiles: 'build/**',  // Path to the build artifacts
+                                    remoteDirectory: '/path/to/remote/dir',  // Path on the remote server
+                                    execCommand: 'pm2 restart app'  // Command to restart the app (example)
+                                )
+                            ]
+                        )
+                    ])
+                }
+            }
+        }
+
+        stage('Post-Deployment Check') {
+            steps {
+                script {
+                    // Example: Run health checks or tests to ensure the app is up and running
+                    echo "Running post-deployment health checks..."
+
+                    // Add any necessary health check logic here
+                    // For example, you might run a script or test a service endpoint
+                    // sh 'curl http://localhost:8080/healthcheck'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Release Pipeline executed successfully and the app is deployed!'
+        }
+
+        failure {
+            echo 'There was an issue in the Release Pipeline!'
+        }
+    }
+}
