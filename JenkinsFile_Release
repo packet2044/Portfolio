@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Fetch Artifact') {
+            steps {
+                echo 'Fetching build artifact...'
+                // Replace with actual command to copy or download the artifact
+                sh 'cp -r build/* /var/www/html/'  // Replace this with appropriate deployment steps
+            }
+        }
+
+        stage('Deploy Application') {
+            steps {
+                echo 'Deploying application...'
+                // Restart server or services to make the app live
+                sh 'sudo systemctl restart apache2'  // Adjust based on your environment
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Release Pipeline completed successfully!"
+        }
+
+        failure {
+            echo "Release Pipeline failed!"
+        }
+    }
+}
