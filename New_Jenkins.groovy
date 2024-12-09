@@ -4,6 +4,8 @@ pipeline {
     environment {
         DEPLOY_ENV = "production"  // Add your environment variable for production deployment
         BUILD_DIR = 'build'
+        APP_PORT = 3000 // Port where the app should run
+        APP_PID_FILE = "app.pid" // Store the PID to track the running app
     }
 
     stages {
@@ -26,37 +28,56 @@ pipeline {
         // Build the Application
         stage('Build') {
             steps {
-                sh 'npm run build'
+                sh 'npm run build'  // Build the application
             }
         }
 
-        // Test the Application (Optional, depending on your requirements)
-        stage('Test') {
+        // Stop the Existing Application if Running on Port 3000
+        stage('Stop Existing App') {
             steps {
                 script {
-                    try {
-                        sh 'npm test --passWithNoTests'
-                    } catch (Exception e) {
-                        echo "No tests found or test failed - continuing"
+                    // Find the PID of the existing app running on port 3000
+                    def pid = sh(script: "lsof -t -i:${APP_PORT} || true", returnStdout: true).trim()
+                    
+                    // If an existing app is found, kill it
+                    if (pid) {
+                        echo "Stopping existing app with PID: ${pid}"
+                        sh "kill -9 ${pid}"  // Kill the process running on port 3000
+                    } else {
+                        echo "No existing app found running on port ${APP_PORT}"
                     }
                 }
             }
         }
 
-        // Deploy the Application (e.g., upload to a server or container)
+        // Deploy the New Build (Start the New App on Port 3000)
         stage('Deploy') {
             steps {
-                echo 'Deploying application to environment...'
-                sh 'npm start'  // This can be replaced with your actual deployment script or commands
+                echo 'Deploying the new application to localhost...'
+                sh '''
+                    # Start the app using the build folder on port 3000
+                    nohup serve -s build -l ${APP_PORT} > server.log 2>&1 &
+                    echo $! > ${APP_PID_FILE}  # Save the process ID (PID) of the new app
+                '''
             }
         }
 
-        // Release Stage (optional, push to production)
+        // Run Tests (optional, can be skipped if no tests)
+        stage('Test') {
+            steps {
+                script {
+                    // Run tests, but continue even if no tests are found
+                    sh 'npm test --passWithNoTests'
+                }
+            }
+        }
+
+        // Release (optional, remove or replace deploy_prod.sh if not used)
         stage('Release') {
             steps {
                 echo 'Releasing to production...'
-                // Example: deploy to production or trigger another job
-                sh './deploy_prod.sh'  // Replace with your own deploy script or commands
+                // If you don't need this step, remove it or comment it out
+                // sh './deploy_prod.sh'
             }
         }
     }
@@ -64,8 +85,6 @@ pipeline {
     post {
         success {
             echo "Build and Deployment Success!"
-            // Trigger the Release Pipeline job after successful build and deployment
-            build job: 'Release_Pipeline', wait: false
         }
 
         failure {
