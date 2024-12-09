@@ -2,94 +2,108 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_ENV = "production"  // Add your environment variable for production deployment
-        BUILD_DIR = 'build'
-        APP_PORT = 3000 // Port where the app should run
-        APP_PID_FILE = "app.pid" // Store the PID to track the running app
+        // Define any environment variables if needed
     }
 
     stages {
-        // Checkout Source Code
+        stage('Declarative: Checkout SCM') {
+            steps {
+                script {
+                    checkout scm
+                }
+            }
+        }
+
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/packet2044/Portfolio.git',
-                    credentialsId: 'PAT'  // Replace with your credentials ID
+                script {
+                    // This checks out the Git repository again, making sure we have the latest changes
+                    checkout scm
+                }
             }
         }
 
-        // Install Dependencies
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'  // Ensure you install all dependencies
+                script {
+                    // Install necessary dependencies using npm
+                    sh 'npm install'
+                }
             }
         }
 
-        // Build the Application
         stage('Build') {
             steps {
-                sh 'npm run build'  // Build the application
+                script {
+                    // Run the build process
+                    sh 'npm run build'
+                }
             }
         }
 
-        // Stop the Existing Application if Running on Port 3000 (Windows-friendly)
         stage('Stop Existing App') {
             steps {
                 script {
-                    // Find the PID of the existing app running on port 3000 using netstat
-                    def pid = sh(script: '''netstat -ano | findstr :3000 | findstr LISTENING | awk "{print \$5}" || true''', returnStdout: true).trim()
+                    // Find the PID of the process listening on port 3000
+                    def pid = sh(script: "netstat -ano | findstr :3000 | awk '{print \$5}'", returnStdout: true).trim()
 
-                    // If an existing app is found, kill it using taskkill
+                    // If a PID is found, kill the process
                     if (pid) {
-                        echo "Stopping existing app with PID: ${pid}"
-                        sh "taskkill /PID ${pid} /F"  // Kill the process running on port 3000
+                        echo "Stopping existing app with PID: $pid"
+                        sh "taskkill /PID $pid /F"
                     } else {
-                        echo "No existing app found running on port ${APP_PORT}"
+                        echo "No application found running on port 3000."
                     }
                 }
             }
         }
 
-        // Deploy the New Build (Start the New App on Port 3000)
         stage('Deploy') {
             steps {
-                echo 'Deploying the new application to localhost...'
-                sh '''
-                    # Start the app using the build folder on port 3000
-                    nohup serve -s build -l ${APP_PORT} > server.log 2>&1 &
-                    echo $! > ${APP_PID_FILE}  # Save the process ID (PID) of the new app
-                    tail -f server.log  # Log the server output to make sure it's starting correctly
-                '''
-            }
-        }
-
-        // Run Tests (optional, can be skipped if no tests)
-        stage('Test') {
-            steps {
                 script {
-                    // Run tests, but continue even if no tests are found
-                    sh 'npm test --passWithNoTests || true'
+                    // Your deployment logic goes here
+                    // For example, if you are using a static server, you can use:
+                    // sh 'serve -s build'
+                    echo "Deploying application..."
+                    // Add your deployment commands here
                 }
             }
         }
 
-        // Release (optional, remove or replace deploy_prod.sh if not used)
+        stage('Test') {
+            steps {
+                script {
+                    // Your test execution logic goes here
+                    // For example, if you have tests, you can run:
+                    // sh 'npm test'
+                    echo "Running tests..."
+                    // Add your test commands here
+                }
+            }
+        }
+
         stage('Release') {
             steps {
-                echo 'Releasing to production...'
-                // If you don't need this step, remove it or comment it out
-                // sh './deploy_prod.sh'
+                script {
+                    // Your release logic goes here
+                    // For example, tagging the release, pushing to a remote, etc.
+                    echo "Releasing the application..."
+                    // Add your release commands here
+                }
             }
         }
     }
 
     post {
-        success {
-            echo "Build and Deployment Success!"
+        always {
+            // This block runs after the pipeline, regardless of success or failure
+            echo "Pipeline completed"
         }
-
+        success {
+            echo "Build and deployment were successful!"
+        }
         failure {
-            echo "Build or Deployment Failed!"
+            echo "Build or deployment failed."
         }
     }
 }
