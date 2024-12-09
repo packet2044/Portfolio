@@ -2,108 +2,74 @@ pipeline {
     agent any
 
     environment {
-        // Define any environment variables if needed
+        DEPLOY_ENV = "production"  // Add your environment variable for production deployment
+        BUILD_DIR = 'build'
     }
 
     stages {
-        stage('Declarative: Checkout SCM') {
-            steps {
-                script {
-                    checkout scm
-                }
-            }
-        }
-
+        // Checkout Source Code
         stage('Checkout') {
             steps {
-                script {
-                    // This checks out the Git repository again, making sure we have the latest changes
-                    checkout scm
-                }
+                git branch: 'main',
+                    url: 'https://github.com/packet2044/Portfolio.git',
+                    credentialsId: 'PAT'  // Replace with your credentials ID
             }
         }
 
+        // Install Dependencies
         stage('Install Dependencies') {
             steps {
-                script {
-                    // Install necessary dependencies using npm
-                    sh 'npm install'
-                }
+                sh 'npm install'  // Ensure you install all dependencies
             }
         }
 
+        // Build the Application
         stage('Build') {
             steps {
-                script {
-                    // Run the build process
-                    sh 'npm run build'
-                }
+                sh 'npm run build'
             }
         }
 
-        stage('Stop Existing App') {
+        // Test the Application (Optional, depending on your requirements)
+        stage('Test') {
             steps {
                 script {
-                    // Find the PID of the process listening on port 3000
-                    def pid = sh(script: "netstat -ano | findstr :3000 | awk '{print \$5}'", returnStdout: true).trim()
-
-                    // If a PID is found, kill the process
-                    if (pid) {
-                        echo "Stopping existing app with PID: $pid"
-                        sh "taskkill /PID $pid /F"
-                    } else {
-                        echo "No application found running on port 3000."
+                    try {
+                        sh 'npm test --passWithNoTests'
+                    } catch (Exception e) {
+                        echo "No tests found or test failed - continuing"
                     }
                 }
             }
         }
 
+        // Deploy the Application (e.g., upload to a server or container)
         stage('Deploy') {
             steps {
-                script {
-                    // Your deployment logic goes here
-                    // For example, if you are using a static server, you can use:
-                    // sh 'serve -s build'
-                    echo "Deploying application..."
-                    // Add your deployment commands here
-                }
+                echo 'Deploying application to environment...'
+                sh 'npm start'  // This can be replaced with your actual deployment script or commands
             }
         }
 
-        stage('Test') {
-            steps {
-                script {
-                    // Your test execution logic goes here
-                    // For example, if you have tests, you can run:
-                    // sh 'npm test'
-                    echo "Running tests..."
-                    // Add your test commands here
-                }
-            }
-        }
-
+        // Release Stage (optional, push to production)
         stage('Release') {
             steps {
-                script {
-                    // Your release logic goes here
-                    // For example, tagging the release, pushing to a remote, etc.
-                    echo "Releasing the application..."
-                    // Add your release commands here
-                }
+                echo 'Releasing to production...'
+                // Example: deploy to production or trigger another job
+                sh './deploy_prod.sh'  // Replace with your own deploy script or commands
             }
         }
     }
 
     post {
-        always {
-            // This block runs after the pipeline, regardless of success or failure
-            echo "Pipeline completed"
-        }
         success {
-            echo "Build and deployment were successful!"
+            echo "Build and Deployment Success!"
+            // Trigger the Release Pipeline job after successful build and deployment
+            build job: 'Release_Pipeline', wait: false
         }
+
         failure {
-            echo "Build or deployment failed."
+            echo "Build or Deployment Failed!"
         }
     }
 }
