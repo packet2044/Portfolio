@@ -1,0 +1,39 @@
+trigger:
+- master
+
+pool:
+  name: Default
+  demands:
+    - agent.name -equals CRIBL-QAYUMTAH1
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '16.x'  # Ensure this version matches your app's requirements
+  displayName: 'Install Node.js'
+
+- script: |
+    echo "Cleaning npm cache..."
+    npm cache verify  # Check the integrity of the npm cache instead of clearing it forcefully
+  displayName: 'Verify npm cache'
+
+- script: |
+    echo "Installing dependencies with legacy peer dependencies handling..."
+    npm install --legacy-peer-deps  # Use this flag if there are peer dependency issues
+  displayName: 'Install dependencies'
+
+- script: |
+    echo "Building the app..."
+    npm run build  # This step should generate the /build folder
+  displayName: 'Build the app'
+
+- task: AzureWebApp@1
+  inputs:
+    azureSubscription: 'MyPortfolio'
+    appName: 'MyPortfolioApp'  # Ensure this matches your Azure Web App name
+    package: '$(Build.SourcesDirectory)/build'  # Ensure this is the correct path to the build folder
+  displayName: 'Deploy to Azure App Service'
+
+- script: |
+    echo "Build and deployment pipeline executed successfully!"
+  displayName: 'Finalize build'
