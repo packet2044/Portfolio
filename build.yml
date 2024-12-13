@@ -35,7 +35,7 @@ steps:
 - task: AzureWebApp@1
   inputs:
     azureSubscription: 'MyPortfolio'
-    appName: 'MyPortfolioApp'  # Ensure this matches your Azure Web App name
+    appName: 'NewPortfolioApp'  # Ensure this matches your Azure Web App name
     package: '$(Build.SourcesDirectory)/build'  # Ensure this is the correct path to the build folder
   displayName: 'Deploy to Azure App Service'
 
