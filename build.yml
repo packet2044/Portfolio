@@ -24,7 +24,7 @@ steps:
 
 - script: |
     echo "Installing dependencies with legacy peer dependencies handling..."
-    npm install --legacy-peer-deps --verbose  # Verbose mode to show detailed logs during npm install
+    npm ci --legacy-peer-deps --verbose  # Install exactly from package-lock.json
   displayName: 'Install dependencies'
 
 - script: |
