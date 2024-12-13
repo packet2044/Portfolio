@@ -59,7 +59,7 @@ stages:
         deploy:
           steps:
           - task: AzureWebApp@1
-            displayName: 'Azure Web App Deploy: NewPortfolioApp'
+            displayName: 'Azure Web App Deploy: PortfolioApp'
             inputs:
               azureSubscription: $(azureSubscription)
               appType: webAppLinux
