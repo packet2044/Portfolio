@@ -1,5 +1,5 @@
 trigger:
-- master
+- main
 
 pool:
   name: Default
@@ -14,12 +14,17 @@ steps:
 
 - script: |
     echo "Cleaning npm cache..."
-    npm cache verify  # Check the integrity of the npm cache instead of clearing it forcefully
+    npm cache clean --force  # Clear npm cache to avoid any corrupted or stale data
+  displayName: 'Clean npm cache'
+
+- script: |
+    echo "Verifying npm cache..."
+    npm cache verify  # Verify the integrity of npm cache
   displayName: 'Verify npm cache'
 
 - script: |
     echo "Installing dependencies with legacy peer dependencies handling..."
-    npm install --legacy-peer-deps  # Use this flag if there are peer dependency issues
+    npm install --legacy-peer-deps --verbose  # Verbose mode to show detailed logs during npm install
   displayName: 'Install dependencies'
 
 - script: |
